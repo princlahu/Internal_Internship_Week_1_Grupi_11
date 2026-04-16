@@ -1,28 +1,46 @@
 #include <stdio.h>
 
 int main() {
+    int n, choice;
 
-    int rezultati;
+    // Marrim input nga useri
+    printf("Shkruaj nje numer (1 - 12): ");
+    scanf("%d", &n);
 
-    printf("Shkruaj rezultatin (0-100): ");
-    scanf("%d", &rezultati);
+    // Validimi i input-it
+    if(n < 1 || n > 12) {
+        printf("Input jo valid! Duhet me qene prej 1 deri 12.\n");
+        return 0;
+    }
 
-    if (rezultati < 0 || rezultati > 100) {
-        printf("Input nuk eshte valid\n");
+    // Zgjedhja e pattern-it
+    printf("Zgjedh pattern:\n");
+    printf("1 - Me yje (*)\n");
+    printf("2 - Me numra\n");
+    printf("Zgjedh: ");
+    scanf("%d", &choice);
+
+    if(choice == 1) {
+        // Pattern me yje
+        for(int i = 1; i <= n; i++) {
+            for(int j = 1; j <= i; j++) {
+                printf("* ");
+            }
+            printf("\n");
+        }
     }
-    else if (rezultati >= 90 && rezultati <= 100) {
-        printf("Shkelqyeshem\n");
-    }
-    else if (rezultati >= 75 && rezultati < 90) {
-        printf("Shume mire\n");
-    }
-    else if (rezultati >= 50 && rezultati < 75) {
-        printf("Mire\n");
+    else if(choice == 2) {
+        // Pattern me numra
+        for(int i = 1; i <= n; i++) {
+            for(int j = 1; j <= i; j++) {
+                printf("%d ", j);
+            }
+            printf("\n");
+        }
     }
     else {
-        printf("Ne permiresim\n");
+        printf("Zgjedhje jo valide!\n");
     }
 
     return 0;
-
 }
