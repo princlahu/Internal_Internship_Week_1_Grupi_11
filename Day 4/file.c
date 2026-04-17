@@ -24,6 +24,17 @@ void clearInputBuffer(void) {
     }
 }
 
+void printDivider(void) {
+    printf("--------------------------------------------------\n");
+}
+
+void printSectionTitle(const char title[]) {
+    printf("\n");
+    printDivider();
+    printf("%s\n", title);
+    printDivider();
+}
+
 const char* statusToText(Status status) {
     switch (status) {
         case NOT_STARTED:
@@ -37,6 +48,58 @@ const char* statusToText(Status status) {
     }
 }
 
+int readIntInRange(const char prompt[], int min, int max, int *value) {
+    printf("%s", prompt);
+
+    if (scanf("%d", value) != 1) {
+        clearInputBuffer();
+        printf("Input i pavlefshem. Duhet numer.\n");
+        return 0;
+    }
+
+    if (*value < min || *value > max) {
+        printf("Vlera duhet te jete nga %d deri ne %d.\n", min, max);
+        return 0;
+    }
+
+    return 1;
+}
+
+int readLine(const char prompt[], char text[], int size) {
+    printf("%s", prompt);
+
+    if (fgets(text, size, stdin) == NULL) {
+        printf("Gabim gjate leximit te tekstit.\n");
+        return 0;
+    }
+
+    text[strcspn(text, "\n")] = '\0';
+
+    if (strlen(text) == 0) {
+        printf("Teksti nuk mund te jete bosh.\n");
+        return 0;
+    }
+
+    return 1;
+}
+
+int readStatus(Status *status) {
+    int choice;
+
+    printf("Zgjidh statusin:\n");
+    printf("1. Not Started\n");
+    printf("2. In Progress\n");
+    printf("3. Completed\n");
+
+    if (!readIntInRange("Zgjedhja: ", 1, 3, &choice)) {
+        printf("Status i pavlefshem.\n");
+        return 0;
+    }
+
+    *status = (Status)choice;
+    return 1;
+}
+
 void printSingleRecord(StudentRecord record) {
     printf("ID: %d\n", record.id);
     printf("Emri: %s\n", record.name);
@@ -44,8 +107,15 @@ void printSingleRecord(StudentRecord record) {
     printf("Statusi: %s\n", statusToText(record.status));
 }
 
+void printRecordWithIndex(StudentRecord record, int index) {
+    printf("Regjistrimi %d\n", index + 1);
+    printSingleRecord(record);
+    printDivider();
+}
+
 int containsIgnoreCase(const char text[], const char search[]) {
-    int i, j;
+    int i;
+    int j;
 
     if (strlen(search) == 0) {
         return 0;
@@ -68,6 +138,42 @@ int containsIgnoreCase(const char text[], const char search[]) {
     return 0;
 }
 
+int idExists(StudentRecord records[], int count, int id, StudentRecord *ignoreRecord) {
+    int i;
+
+    for (i = 0; i < count; i++) {
+        if (&records[i] != ignoreRecord && records[i].id == id) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+StudentRecord* findRecordById(StudentRecord records[], int count, int id) {
+    int i;
+
+    for (i = 0; i < count; i++) {
+        if (records[i].id == id) {
+            return &records[i];
+        }
+    }
+
+    return NULL;
+}
+
+int findRecordIndexById(StudentRecord records[], int count, int id) {
+    int i;
+
+    for (i = 0; i < count; i++) {
+        if (records[i].id == id) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
 void showRecordEvaluation(StudentRecord record) {
     printf("Vleresimi: ");
 
@@ -84,33 +190,6 @@ void showRecordEvaluation(StudentRecord record) {
     }
 }
 
-int readStatus(Status *status) {
-    int choice;
-
-    printf("Zgjidh statusin:\n");
-    printf("1. Not Started\n");
-    printf("2. In Progress\n");
-    printf("3. Completed\n");
-    printf("Zgjedhja: ");
-
-    if (scanf("%d", &choice) != 1) {
-        clearInputBuffer();
-        printf("Input i pavlefshem per statusin.\n");
-        return 0;
-    }
-
-    switch (choice) {
-        case NOT_STARTED:
-        case IN_PROGRESS:
-        case COMPLETED:
-            *status = (Status)choice;
-            return 1;
-        default:
-            printf("Status i pavlefshem. Provo perseri.\n");
-            return 0;
-    }
-}
-
 int addStudentRecord(StudentRecord records[], int *count) {
     StudentRecord newRecord;
 
@@ -119,39 +198,24 @@ int addStudentRecord(StudentRecord records[], int *count) {
         return 0;
     }
 
-    printf("\nShto regjistrim te ri\n");
+    printSectionTitle("Shto Regjistrim Te Ri");
 
-    printf("ID: ");
-    if (scanf("%d", &newRecord.id) != 1) {
-        clearInputBuffer();
-        printf("ID i pavlefshem.\n");
+    if (!readIntInRange("ID: ", 1, 99999, &newRecord.id)) {
+        return 0;
+    }
+
+    if (idExists(records, *count, newRecord.id, NULL)) {
+        printf("Ky ID ekziston tashme.\n");
         return 0;
     }
 
     clearInputBuffer();
 
-    printf("Emri: ");
-    if (fgets(newRecord.name, NAME_LENGTH, stdin) == NULL) {
-        printf("Gabim gjate leximit te emrit.\n");
+    if (!readLine("Emri: ", newRecord.name, NAME_LENGTH)) {
         return 0;
     }
 
-    newRecord.name[strcspn(newRecord.name, "\n")] = '\0';
-
-    if (strlen(newRecord.name) == 0) {
-        printf("Emri nuk mund te jete bosh.\n");
-        return 0;
-    }
-
-    printf("Progresi ose rezultati (0 - 100): ");
-    if (scanf("%d", &newRecord.progress) != 1) {
-        clearInputBuffer();
-        printf("Vlere e pavlefshme per progresin.\n");
-        return 0;
-    }
-
-    if (newRecord.progress < 0 || newRecord.progress > 100) {
-        printf("Progresi duhet te jete nga 0 deri ne 100.\n");
+    if (!readIntInRange("Progresi ose rezultati (0 - 100): ", 0, 100, &newRecord.progress)) {
         return 0;
     }
 
@@ -166,34 +230,33 @@ int addStudentRecord(StudentRecord records[], int *count) {
     return 1;
 }
 
-StudentRecord* findRecordById(StudentRecord records[], int count, int id) {
-    int i;
-
-    for (i = 0; i < count; i++) {
-        if (records[i].id == id) {
-            return &records[i];
-        }
-    }
-
-    return NULL;
-}
-
-void updateRecordByPointer(StudentRecord *record) {
+void updateRecordByPointer(StudentRecord *record, StudentRecord records[], int count) {
+    int newId;
     int newProgress;
     Status newStatus;
+    char newName[NAME_LENGTH];
 
-    printf("\nRegjistrimi aktual:\n");
+    printSectionTitle("Perditeso Regjistrim");
+    printf("Gjendja aktuale:\n");
     printSingleRecord(*record);
+    printDivider();
 
-    printf("Vendos progresin e ri (0 - 100): ");
-    if (scanf("%d", &newProgress) != 1) {
-        clearInputBuffer();
-        printf("Vlere e pavlefshme per progresin.\n");
+    if (!readIntInRange("ID i ri: ", 1, 99999, &newId)) {
         return;
     }
 
-    if (newProgress < 0 || newProgress > 100) {
-        printf("Progresi duhet te jete nga 0 deri ne 100.\n");
+    if (idExists(records, count, newId, record)) {
+        printf("Ekziston nje regjistrim tjeter me kete ID.\n");
+        return;
+    }
+
+    clearInputBuffer();
+
+    if (!readLine("Emri i ri: ", newName, NAME_LENGTH)) {
+        return;
+    }
+
+    if (!readIntInRange("Progresi i ri (0 - 100): ", 0, 100, &newProgress)) {
         return;
     }
 
@@ -201,6 +264,8 @@ void updateRecordByPointer(StudentRecord *record) {
         return;
     }
 
+    record->id = newId;
+    strcpy(record->name, newName);
     record->progress = newProgress;
     record->status = newStatus;
 
@@ -218,12 +283,9 @@ void updateRecord(StudentRecord records[], int count) {
         return;
     }
 
-    printf("\nPerditeso regjistrim sipas ID-se\n");
-    printf("Vendos ID-ne: ");
+    printSectionTitle("Perditeso Regjistrim Sipas ID-se");
 
-    if (scanf("%d", &id) != 1) {
-        clearInputBuffer();
-        printf("ID e pavlefshme.\n");
+    if (!readIntInRange("Vendos ID-ne: ", 1, 99999, &id)) {
         return;
     }
 
@@ -234,7 +296,43 @@ void updateRecord(StudentRecord records[], int count) {
         return;
     }
 
-    updateRecordByPointer(record);
+    updateRecordByPointer(record, records, count);
+}
+
+void deleteRecord(StudentRecord records[], int *count) {
+    int id;
+    int index;
+    int i;
+
+    if (*count == 0) {
+        printf("\nNuk ka regjistrime per fshirje.\n");
+        return;
+    }
+
+    printSectionTitle("Fshi Regjistrim Sipas ID-se");
+
+    if (!readIntInRange("Vendos ID-ne: ", 1, 99999, &id)) {
+        return;
+    }
+
+    index = findRecordIndexById(records, *count, id);
+
+    if (index == -1) {
+        printf("Nuk u gjet regjistrim me kete ID.\n");
+        return;
+    }
+
+    printf("Do te fshihet:\n");
+    printSingleRecord(records[index]);
+    printDivider();
+
+    for (i = index; i < *count - 1; i++) {
+        records[i] = records[i + 1];
+    }
+
+    (*count)--;
+    printf("Regjistrimi u fshi me sukses.\n");
+    printf("Numri aktual i regjistrimeve: %d\n", *count);
 }
 
 void showAllRecords(StudentRecord records[], int count) {
@@ -245,13 +343,10 @@ void showAllRecords(StudentRecord records[], int count) {
         return;
     }
 
-    printf("\nLista e regjistrimeve:\n");
-    printf("--------------------------------------------------\n");
+    printSectionTitle("Lista E Regjistrimeve");
 
     for (i = 0; i < count; i++) {
-        printf("Regjistrimi %d\n", i + 1);
-        printSingleRecord(records[i]);
-        printf("--------------------------------------------------\n");
+        printRecordWithIndex(records[i], i);
     }
 }
 
@@ -280,14 +375,16 @@ void showReport(StudentRecord records[], int count) {
 
         if (records[i].progress > highestProgress) {
             highestProgress = records[i].progress;
-        } else if (records[i].progress < lowestProgress) {
+        }
+
+        if (records[i].progress < lowestProgress) {
             lowestProgress = records[i].progress;
         }
     }
 
     averageProgress = (double)sumProgress / count;
 
-    printf("\n===== Raport Analitik =====\n");
+    printSectionTitle("Raport Analitik");
     printf("Numri total i regjistrimeve: %d\n", count);
     printf("Numri i rasteve te perfunduara: %d\n", completedCount);
     printf("Mesatarja e progresit: %.2f\n", averageProgress);
@@ -311,6 +408,40 @@ void showReport(StudentRecord records[], int count) {
     }
 }
 
+void showRanking(StudentRecord records[], int count) {
+    StudentRecord sortedRecords[MAX_STUDENTS];
+    StudentRecord temp;
+    int i;
+    int j;
+
+    if (count == 0) {
+        printf("\nNuk ka regjistrime per renditje.\n");
+        return;
+    }
+
+    for (i = 0; i < count; i++) {
+        sortedRecords[i] = records[i];
+    }
+
+    for (i = 0; i < count - 1; i++) {
+        for (j = 0; j < count - 1 - i; j++) {
+            if (sortedRecords[j].progress < sortedRecords[j + 1].progress) {
+                temp = sortedRecords[j];
+                sortedRecords[j] = sortedRecords[j + 1];
+                sortedRecords[j + 1] = temp;
+            }
+        }
+    }
+
+    printSectionTitle("Renditja Sipas Progresit");
+
+    for (i = 0; i < count; i++) {
+        printf("Rangu %d\n", i + 1);
+        printSingleRecord(sortedRecords[i]);
+        printDivider();
+    }
+}
+
 void searchRecords(StudentRecord records[], int count) {
     int choice;
     int i;
@@ -323,70 +454,47 @@ void searchRecords(StudentRecord records[], int count) {
         return;
     }
 
-    printf("\nKerkim i regjistrimeve\n");
+    printSectionTitle("Kerkim I Regjistrimeve");
     printf("1. Kerko sipas ID-se\n");
     printf("2. Kerko sipas emrit\n");
-    printf("Zgjedhja: ");
 
-    if (scanf("%d", &choice) != 1) {
-        clearInputBuffer();
+    if (!readIntInRange("Zgjedhja: ", 1, 2, &choice)) {
         printf("Zgjedhje e pavlefshme per kerkim.\n");
         return;
     }
 
-    switch (choice) {
-        case 1:
-            printf("Vendos ID-ne: ");
-            if (scanf("%d", &searchId) != 1) {
-                clearInputBuffer();
-                printf("ID e pavlefshme.\n");
-                return;
-            }
-
-            printf("\nRezultatet e kerkimit:\n");
-            printf("--------------------------------------------------\n");
-
-            for (i = 0; i < count; i++) {
-                if (records[i].id == searchId) {
-                    printSingleRecord(records[i]);
-                    showRecordEvaluation(records[i]);
-                    printf("--------------------------------------------------\n");
-                    found = 1;
-                }
-            }
-            break;
-
-        case 2:
-            clearInputBuffer();
-            printf("Vendos emrin ose nje pjese te emrit: ");
-            if (fgets(searchName, NAME_LENGTH, stdin) == NULL) {
-                printf("Gabim gjate leximit te emrit.\n");
-                return;
-            }
-
-            searchName[strcspn(searchName, "\n")] = '\0';
-
-            if (strlen(searchName) == 0) {
-                printf("Teksti i kerkimit nuk mund te jete bosh.\n");
-                return;
-            }
-
-            printf("\nRezultatet e kerkimit:\n");
-            printf("--------------------------------------------------\n");
-
-            for (i = 0; i < count; i++) {
-                if (containsIgnoreCase(records[i].name, searchName)) {
-                    printSingleRecord(records[i]);
-                    showRecordEvaluation(records[i]);
-                    printf("--------------------------------------------------\n");
-                    found = 1;
-                }
-            }
-            break;
-
-        default:
-            printf("Opsion i pavlefshem ne kerkim.\n");
+    if (choice == 1) {
+        if (!readIntInRange("Vendos ID-ne: ", 1, 99999, &searchId)) {
             return;
+        }
+
+        printDivider();
+
+        for (i = 0; i < count; i++) {
+            if (records[i].id == searchId) {
+                printSingleRecord(records[i]);
+                showRecordEvaluation(records[i]);
+                printDivider();
+                found = 1;
+            }
+        }
+    } else {
+        clearInputBuffer();
+
+        if (!readLine("Vendos emrin ose nje pjese te emrit: ", searchName, NAME_LENGTH)) {
+            return;
+        }
+
+        printDivider();
+
+        for (i = 0; i < count; i++) {
+            if (containsIgnoreCase(records[i].name, searchName)) {
+                printSingleRecord(records[i]);
+                showRecordEvaluation(records[i]);
+                printDivider();
+                found = 1;
+            }
+        }
     }
 
     if (!found) {
@@ -395,14 +503,15 @@ void searchRecords(StudentRecord records[], int count) {
 }
 
 void showMenu(void) {
-    printf("\n===== Student Progress Tracker =====\n");
+    printSectionTitle("Student Progress Tracker");
     printf("1. Shto regjistrim\n");
     printf("2. Shfaq te gjitha regjistrimet\n");
     printf("3. Shfaq raportin\n");
     printf("4. Perditeso regjistrim\n");
-    printf("5. Kerko regjistrim\n");
-    printf("6. Dil\n");
-    printf("Zgjedhja juaj: ");
+    printf("5. Fshi regjistrim\n");
+    printf("6. Kerko regjistrim\n");
+    printf("7. Rendit sipas progresit\n");
+    printf("8. Dil\n");
 }
 
 int main(void) {
@@ -414,9 +523,7 @@ int main(void) {
     while (running) {
         showMenu();
 
-        if (scanf("%d", &choice) != 1) {
-            clearInputBuffer();
-            printf("Zgjedhje e pavlefshme. Ju lutem vendosni numer.\n");
+        if (!readIntInRange("Zgjedhja juaj: ", 1, 8, &choice)) {
             continue;
         }
 
@@ -434,9 +541,15 @@ int main(void) {
                 updateRecord(records, count);
                 break;
             case 5:
-                searchRecords(records, count);
+                deleteRecord(records, &count);
                 break;
             case 6:
+                searchRecords(records, count);
+                break;
+            case 7:
+                showRanking(records, count);
+                break;
+            case 8:
                 running = 0;
                 printf("Programi u mbyll.\n");
                 break;
