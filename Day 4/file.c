@@ -166,6 +166,77 @@ int addStudentRecord(StudentRecord records[], int *count) {
     return 1;
 }
 
+StudentRecord* findRecordById(StudentRecord records[], int count, int id) {
+    int i;
+
+    for (i = 0; i < count; i++) {
+        if (records[i].id == id) {
+            return &records[i];
+        }
+    }
+
+    return NULL;
+}
+
+void updateRecordByPointer(StudentRecord *record) {
+    int newProgress;
+    Status newStatus;
+
+    printf("\nRegjistrimi aktual:\n");
+    printSingleRecord(*record);
+
+    printf("Vendos progresin e ri (0 - 100): ");
+    if (scanf("%d", &newProgress) != 1) {
+        clearInputBuffer();
+        printf("Vlere e pavlefshme per progresin.\n");
+        return;
+    }
+
+    if (newProgress < 0 || newProgress > 100) {
+        printf("Progresi duhet te jete nga 0 deri ne 100.\n");
+        return;
+    }
+
+    if (!readStatus(&newStatus)) {
+        return;
+    }
+
+    record->progress = newProgress;
+    record->status = newStatus;
+
+    printf("Regjistrimi u perditesua me sukses.\n");
+    printf("Gjendja e re:\n");
+    printSingleRecord(*record);
+}
+
+void updateRecord(StudentRecord records[], int count) {
+    int id;
+    StudentRecord *record;
+
+    if (count == 0) {
+        printf("\nNuk ka regjistrime per perditesim.\n");
+        return;
+    }
+
+    printf("\nPerditeso regjistrim sipas ID-se\n");
+    printf("Vendos ID-ne: ");
+
+    if (scanf("%d", &id) != 1) {
+        clearInputBuffer();
+        printf("ID e pavlefshme.\n");
+        return;
+    }
+
+    record = findRecordById(records, count, id);
+
+    if (record == NULL) {
+        printf("Nuk u gjet regjistrim me kete ID.\n");
+        return;
+    }
+
+    updateRecordByPointer(record);
+}
+
 void showAllRecords(StudentRecord records[], int count) {
     int i;
 
@@ -328,8 +399,9 @@ void showMenu(void) {
     printf("1. Shto regjistrim\n");
     printf("2. Shfaq te gjitha regjistrimet\n");
     printf("3. Shfaq raportin\n");
-    printf("4. Kerko regjistrim\n");
-    printf("5. Dil\n");
+    printf("4. Perditeso regjistrim\n");
+    printf("5. Kerko regjistrim\n");
+    printf("6. Dil\n");
     printf("Zgjedhja juaj: ");
 }
 
@@ -359,9 +431,12 @@ int main(void) {
                 showReport(records, count);
                 break;
             case 4:
-                searchRecords(records, count);
+                updateRecord(records, count);
                 break;
             case 5:
+                searchRecords(records, count);
+                break;
+            case 6:
                 running = 0;
                 printf("Programi u mbyll.\n");
                 break;
